@@ -59,6 +59,7 @@ class Supytube(callbacks.Plugin):
                 if(m):
                     youtube = build('youtube', 'v3', developerKey=self.registryValue('developerKey'))
                     data = youtube.videos().list(part='statistics, snippet', id=m.group(1)).execute()
+                    print data
 
                     try:
                         statistics = data['items'][0]['statistics']
@@ -68,15 +69,22 @@ class Supytube(callbacks.Plugin):
                         return
 
                     views = statistics['viewCount']
-                    likes = float(statistics['likeCount'])
-                    dislikes = float(statistics['dislikeCount'])
-                    title = snippet['title']
-                    if (likes + dislikes) > 0:
-                        rating = '%s%%' % round((likes/(likes+dislikes))*100)
+                    if 'likeCount' in statistics:
+                        likes = float(statistics['likeCount'])
                     else:
-                        rating = 'NaN'
+                        likes = 0
+                    if 'dislikeCount' in statistics:
+                        dislikes = float(statistics['dislikeCount'])
+                    else:
+                        dislikes = 0                        
+                    title = snippet['title']
+                    
+                    if (dislikes > 0) and ((likes + dislikes) > 0):
+                        rating = '%s%%' % round((likes/(likes+dislikes))*100)
+                        message = 'Title: %s, Views: %s, Rating: %s' % (ircutils.bold(title), ircutils.bold(views), ircutils.bold(rating))
+                    else:
+                        message = 'Title: %s, Views: %s' % (ircutils.bold(title), ircutils.bold(views))
 
-                    message = 'Title: %s, Views: %s, Rating: %s' % (ircutils.bold(title), ircutils.bold(views), ircutils.bold(rating))
                     message = message.encode('utf-8', 'replace')
                     irc.queueMsg(ircmsgs.notice(msg.args[0], message))
 
